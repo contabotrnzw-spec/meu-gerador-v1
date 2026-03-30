@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TH_BRUXO2_SENSI_VIP</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+        body {
+            background-color: #000;
+            color: #00ff00; 
+            font-family: 'Courier Prime', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-image: linear-gradient(rgba(0, 20, 0, 0.8) 50%, rgba(0, 0, 0, 0.9) 50%);
+            background-size: 100% 4px;
+        }
+
+        .container {
+            background-color: rgba(5, 5, 5, 0.95);
+            padding: 30px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid #00ff00;
+            box-shadow: 0 0 25px rgba(0, 255, 0, 0.2);
+        }
+
+        h2 { text-transform: uppercase; margin-bottom: 20px; text-shadow: 0 0 10px #00ff00; }
+
+        input, select {
+            width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #00ff00;
+            background: #000; color: #00ff00; outline: none; box-sizing: border-box; font-family: 'Courier Prime';
+        }
+
+        .btn {
+            width: 100%; padding: 15px; background: transparent; border: 2px solid #00ff00;
+            color: #00ff00; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.3s;
+        }
+
+        .btn:hover { background: #00ff00; color: #000; }
+
+        /* O BOTÃO INVISÍVEL FICA AQUI */
+        .secret-trigger {
+            width: 100%; height: 35px; background: transparent; border: none;
+            cursor: default; outline: none; margin-top: 5px;
+        }
+
+        #admin-panel, #sensi-result { display: none; margin-top: 20px; }
+        .key-display { background: #111; padding: 15px; border: 1px dashed #00ff00; color: #fff; margin-top: 15px; word-break: break-all; font-weight: bold;}
+        .sensi-box { text-align: left; margin: 20px 0; line-height: 1.8; color: #fff; font-size: 1.1em; }
+        .destaque { color: #00ff00; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="login-screen">
+            <h2>GERADOR VIP</h2>
+            <input type="text" id="user-key" placeholder="DIGITE SUA KEY AQUI">
+            <button class="btn" onclick="verificarAcesso()">[ ACESSAR GERADOR ]</button>
+            
+            <button class="secret-trigger" onclick="entrarModoAdmin()"></button>
+        </div>
+
+        <div id="sensi-result">
+            <h2>SENSI EXCLUSIVA</h2>
+            <div class="sensi-box" id="display-sensi">
+                Pressione o botão para calcular a melhor sensibilidade baseada no servidor.
+            </div>
+            <button class="btn" onclick="gerarNovaSensi()">[ GERAR SENSI ]</button>
+        </div>
+
+        <div id="admin-panel">
+            <h2>PAINEL MASTER</h2>
+            <p style="font-size: 0.8em; color: #aaa;">GERADOR DE ACESSOS</p>
+            <select id="key-time">
+                <option value="1">Válido por 1 DIA</option>
+                <option value="7">Válido por 7 DIAS</option>
+                <option value="30">Válido por 30 DIAS</option>
+                <option value="999">Acesso PERMANENTE</option>
+            </select>
+            <button class="btn" onclick="criarNovaKey()">[ GERAR NOVA KEY ]</button>
+            <div id="show-new-key" class="key-display" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ ATENÇÃO: COLOQUE O LINK DO SEU SERVIDOR (RENDER) AQUI ENTRE AS ASPAS ⚠️
+        const API_URL = "https://seu-servidor-aqui.onrender.com";
+
+        // --- SISTEMA INVISÍVEL (SENHA: th) ---
+        function entrarModoAdmin() {
+            let pass = prompt("ACESSO RESTRITO. SENHA:");
+            if (pass === "th") {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('admin-panel').style.display = 'block';
+            } else if(pass !== null) {
+                alert("SENHA INCORRETA!");
+            }
+        }
+
+        // --- GERAR KEY NO SERVIDOR ---
+        async function criarNovaKey() {
+            const dias = document.getElementById('key-time').value;
+            const display = document.getElementById('show-new-key');
+            
+            display.style.display = 'block';
+            display.innerText = "Conectando ao servidor...";
+
+            try {
+                const response = await fetch(`${API_URL}/gerar`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ senha: "th", dias: dias })
+                });
+
+                const data = await response.json();
+                if(data.key) {
+                    display.innerHTML = `SUCESSO!<br><br><span style="color:#00ff00; font-size:1.2em;">${data.key}</span>`;
+                } else {
+                    display.innerText = "ERRO: " + (data.erro || "Falha ao gerar");
+                }
+            } catch(e) {
+                display.innerText = "ERRO: Servidor offline ou link incorreto.";
+            }
+        }
+
+        // --- LOGIN DO CLIENTE ---
+        async function verificarAcesso() {
+            const keyDigitada = document.getElementById('user-key').value;
+            if(!keyDigitada) { alert("Digite uma Key!"); return; }
+
+            const btn = document.querySelector('#login-screen .btn');
+            btn.innerText = "VERIFICANDO...";
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ key: keyDigitada })
+                });
+
+                const data = await response.json();
+
+                if (data.status === "success") {
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('sensi-result').style.display = 'block';
+                } else if (data.status === "expired") {
+                    alert("⚠️ ESTA KEY JÁ EXPIROU!");
+                    btn.innerText = "[ ACESSAR GERADOR ]";
+                } else {
+                    alert("❌ KEY INVÁLIDA OU NÃO EXISTE!");
+                    btn.innerText = "[ ACESSAR GERADOR ]";
+                }
+            } catch (e) {
+                alert("ERRO: Não foi possível conectar ao servidor.");
+                btn.innerText = "[ ACESSAR GERADOR ]";
+            }
+        }
+
+        // --- LÓGICA DO GERADOR DE SENSI ---
+        function gerarNovaSensi() {
+            const btn = document.querySelector('#sensi-result .btn');
+            btn.innerText = "CALCULANDO...";
+            btn.disabled = true;
+
+            setTimeout(() => {
+                const g = Math.floor(Math.random() * (100 - 88) + 88);
+                const r = Math.floor(Math.random() * (100 - 92) + 92);
+                const m2 = Math.floor(Math.random() * (100 - 85) + 85);
+                const m4 = Math.floor(Math.random() * (100 - 80) + 80);
+                const dpiLista = [411, 441, 520, 600, 720, 800, 960];
+                const dpi = dpiLista[Math.floor(Math.random() * dpiLista.length)];
+
+                document.getElementById('display-sensi').innerHTML = `
+                    <span class="destaque">> GERAL:</span> ${g}<br>
+                    <span class="destaque">> RED DOT:</span> ${r}<br>
+                    <span class="destaque">> MIRA 2X:</span> ${m2}<br>
+                    <span class="destaque">> MIRA 4X:</span> ${m4}<br>
+                    <span class="destaque">> DPI RECOMENDADA:</span> ${dpi}
+                `;
+                
+                btn.innerText = "[ GERAR NOVA SENSI ]";
+                btn.disabled = false;
+            }, 800);
+        }
+    </script>
+</body>
+</html>
